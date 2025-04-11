@@ -6,6 +6,7 @@
 import pigpio  # importing GPIO library
 import os  # importing os library so as to communicate with the system
 import time  # importing time library to make Rpi wait
+
 os.system("sudo pigpiod")  # Launching GPIO library
 
 time.sleep(1)

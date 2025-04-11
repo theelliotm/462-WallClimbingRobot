@@ -4,6 +4,8 @@ import time
 import pigpio  # importing GPIO library
 import os  # importing os library so as to communicate with the system
 import time  # importing time library to make Rpi wait
+from evdev import InputDevice, categorize, ecodes
+
 os.system("sudo pigpiod")  # Launching GPIO library
 
 time.sleep(1)
@@ -48,7 +50,27 @@ pi.set_servo_pulsewidth(ESC_PIN, 0)
 print("Awaiting Command... Options: (c)ontroller, (t)ests")
 inp = input()
 if inp == 'c' or inp == 'controller':
-    print("WIP. Goodbye.")
+    # Replace 'event3' with your actual event number
+    gamepad = InputDevice('/dev/input/event3')
+    print(f"Using device: {gamepad.name}")
+
+    LEFT_STICK_Y = ecodes.ABS_Y
+    RIGHT_STICK_Y = ecodes.ABS_RY
+    BUTTON_A = ecodes.BTN_SOUTH
+
+    for event in gamepad.read_loop():
+        if event.type == ecodes.EV_ABS:
+            if event.code == LEFT_STICK_Y:
+                print(f"Left Stick Y: {event.value}")
+            elif event.code == RIGHT_STICK_Y:
+                print(f"Right Stick Y: {event.value}")
+
+        elif event.type == ecodes.EV_KEY:
+            if event.code == BUTTON_A:
+                if event.value == 1:
+                    print("A button pressed")
+                elif event.value == 0:
+                    print("A button released")
 else:
     while True:
         print("Available Tests: (1) Drive Forward for X seconds (2) Drive backwards for X seconds (3) Enable prop motor for X seconds (4) Turn left one rotation (5) Turn right one rotation")
