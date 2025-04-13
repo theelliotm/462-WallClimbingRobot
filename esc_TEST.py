@@ -17,7 +17,7 @@ pi = pigpio.pi()
 pi.set_servo_pulsewidth(ESC, 0)
 
 max_value = 2000  # change this if your ESC's max value is different or leave it be
-min_value = 700  # change this if your ESC's min value is different or leave it be
+min_value = 750  # change this if your ESC's min value is different or leave it be
 print("For first time launch, select calibrate")
 print("Type the exact word for the function you want")
 print("calibrate OR manual OR control OR arm OR stop")
