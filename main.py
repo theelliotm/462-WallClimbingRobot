@@ -49,9 +49,9 @@ pwm_right = GPIO.PWM(MOTOR_RIGHT_SPEED_CONTROL_PIN, 1000)
 
 # pi.set_servo_pulsewidth(ESC_PIN, 0)
 
-print("Awaiting Command... Options: (c)ontroller, (t)ests")
+print("Awaiting Command... Options: (c)ontroller, (t)ests, (d)emo inputs")
 inp = input()
-if inp == 'c' or inp == 'controller':
+if inp == 'd' or inp == 'demo':
     
     os.system("sudo systemctl enable bluetooth")
     os.system("sudo systemctl start bluetooth")
@@ -73,14 +73,14 @@ if inp == 'c' or inp == 'controller':
         # 7 - left stick, 8 - right stick, 9 - left shoulder, 10 - right shoulder
         # 11 - dpad up, 12 - dpad down, 13 - dpad left, 14 - dpad right
         
-        # for i in range(joystick.get_numbuttons()):
-        #     button = joystick.get_button(i)
-        #     if button and not buttons_pressed.__contains__(i):
-        #         buttons_pressed.add(i)
-        #         print(f"Button {i} pressed")
-        #     elif not button and buttons_pressed.__contains__(i):
-        #         buttons_pressed.remove(i)
-        #         print(f"Button {i} released")
+        for i in range(joystick.get_numbuttons()):
+            button = joystick.get_button(i)
+            if button and not buttons_pressed.__contains__(i):
+                buttons_pressed.add(i)
+                print(f"Button {i} pressed")
+            elif not button and buttons_pressed.__contains__(i):
+                buttons_pressed.remove(i)
+                print(f"Button {i} released")
         
         # AXIS 0 - Left X, 1 - Left Y (inverse), 2 - Right X, 3 - Right Y (inverse)
         # RANGE (-1, 1) 
@@ -88,12 +88,88 @@ if inp == 'c' or inp == 'controller':
         # AXIS 4 - Left Trigger, 5 - Right Trigger
         # Either -1 or 0.9999...
         
-        # for i in range(joystick.get_numaxes()):
-        #     axis = joystick.get_axis(i)
-        #     if abs(axis) > 0.1:
-        #         print(f"Axis {i} value: {axis}")
+        for i in range(joystick.get_numaxes()):
+            axis = joystick.get_axis(i)
+            if abs(axis) > 0.1:
+                print(f"Axis {i} value: {axis}")
         
+elif inp == 'c' or inp == 'controller':
+    os.system("sudo systemctl enable bluetooth")  
+    os.system("sudo systemctl start bluetooth")
+    
+    pygame.init()
+    pygame.joystick.init()
+
+    joystick = pygame.joystick.Joystick(0)
+    joystick.init()
+    
+    print(f"Joystick initialized: {joystick.get_name()}")
+    
+    buttons_pressed = set([])
+    
+    stopped = False
+    stoppedToggle = False
+         
+    while True:
+        pygame.event.pump()
         
+        left_x = joystick.get_axis(0)  # Left X
+        left_y = -joystick.get_axis(1) # Left Y
+        right_x = joystick.get_axis(2)  # Right X
+        right_y = -joystick.get_axis(3) # Right Y
+        
+        x_button = joystick.get_button(2)  # X button
+        
+        # X is the emergency stop button
+        if(x_button and not stopped and not stoppedToggle):
+            stoppedToggle = True
+            print("Stopping motors")
+            pwm_left.stop()
+            pwm_right.stop()
+            GPIO.output(MOTOR_LEFT_FORWARD_PIN, GPIO.LOW)
+            GPIO.output(MOTOR_LEFT_BACKWARD_PIN, GPIO.LOW)
+            GPIO.output(MOTOR_RIGHT_FORWARD_PIN, GPIO.LOW)
+            GPIO.output(MOTOR_RIGHT_BACKWARD_PIN, GPIO.LOW)
+            stopped = True
+            
+        if not x_button:
+            stoppedToggle = False
+        
+        if x_button and stopped and not stoppedToggle:
+            stopped = False
+            print("Starting motors")
+            stoppedToggle = True
+            
+        if not stopped:
+            # Left stick controls forward/backward movement of left wheel
+            if abs(left_y) > 0.1:  # Threshold to avoid noise
+                speed = (abs(left_y) * 30) + 70;  # Scale to 70 - 100
+                pwm_left.start(speed)  # Scale to 0 - 100
+                if left_y > 0:
+                    GPIO.output(MOTOR_LEFT_FORWARD_PIN, GPIO.LOW)
+                    GPIO.output(MOTOR_LEFT_BACKWARD_PIN, GPIO.HIGH)
+                else:
+                    GPIO.output(MOTOR_LEFT_FORWARD_PIN, GPIO.HIGH)
+                    GPIO.output(MOTOR_LEFT_BACKWARD_PIN, GPIO.LOW)
+            else:
+                pwm_left.stop()
+                GPIO.output(MOTOR_LEFT_FORWARD_PIN, GPIO.LOW)
+                GPIO.output(MOTOR_LEFT_BACKWARD_PIN, GPIO.LOW)
+            
+            # Right stick controls forward/backward movement of right wheel
+            if abs(right_y) > 0.1:
+                speed = (abs(right_y) * 30) + 70;
+                pwm_right.start(speed)
+                if right_y > 0:
+                    GPIO.output(MOTOR_RIGHT_FORWARD_PIN, GPIO.HIGH)
+                    GPIO.output(MOTOR_RIGHT_BACKWARD_PIN, GPIO.LOW)
+                else:
+                    GPIO.output(MOTOR_RIGHT_FORWARD_PIN, GPIO.LOW)
+                    GPIO.output(MOTOR_RIGHT_BACKWARD_PIN, GPIO.HIGH)
+            else:
+                pwm_right.stop()
+                GPIO.output(MOTOR_RIGHT_FORWARD_PIN, GPIO.LOW)
+                GPIO.output(MOTOR_RIGHT_BACKWARD_PIN, GPIO.LOW)
         
 else:
     while True:
