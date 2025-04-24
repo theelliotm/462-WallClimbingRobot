@@ -121,6 +121,12 @@ elif inp == 'c' or inp == 'controller':
 
     prop_speed = PROP_MIN_SPEED
 
+    button_toggle = False
+    prop_stopped = True
+
+    pwm_left.start(0)
+    pwm_right.start(0)
+
     while True:
         pygame.event.pump()
 
@@ -131,13 +137,13 @@ elif inp == 'c' or inp == 'controller':
 
         x_button = joystick.get_button(0)  # X button
 
-        button_toggle = False
-
         left_bumper = joystick.get_button(9)  # Left Bumper
         right_bumper = joystick.get_button(10)  # Right Bumper
 
         d_up = joystick.get_button(11)  # D-Pad Up
         d_down = joystick.get_button(12)  # D-Pad Down
+
+        circle_button = joystick.get_button(1)  # O button
 
         if stopped:
             prop_speed = PROP_MIN_SPEED
@@ -169,37 +175,46 @@ elif inp == 'c' or inp == 'controller':
 
             # Propeller speed control using bumpers and dpad
             if (left_bumper and not button_toggle):
-                prop_speed += 100
+                prop_speed -= 100
+                if prop_speed < PROP_MIN_SPEED:
+                    prop_speed = PROP_MIN_SPEED
+                pi.set_servo_pulsewidth(ESC_PIN, prop_speed)
                 button_toggle = True
                 print(f"Propeller Speed: {prop_speed}")
             elif (right_bumper and not button_toggle):
-                prop_speed -= 100
+                prop_speed += 100
+                if prop_speed > PROP_MAX_SPEED:
+                    prop_speed = PROP_MAX_SPEED
+                pi.set_servo_pulsewidth(ESC_PIN, prop_speed)
                 button_toggle = True
                 print(f"Propeller Speed: {prop_speed}")
             elif (d_up and not button_toggle):
                 prop_speed += 10
+                if prop_speed > PROP_MAX_SPEED:
+                    prop_speed = PROP_MAX_SPEED
+
+                pi.set_servo_pulsewidth(ESC_PIN, prop_speed)
                 button_toggle = True
                 print(f"Propeller Speed: {prop_speed}")
             elif (d_down and not button_toggle):
                 prop_speed -= 10
+                if prop_speed < PROP_MIN_SPEED:
+                    prop_speed = PROP_MIN_SPEED
+                pi.set_servo_pulsewidth(ESC_PIN, prop_speed)
                 button_toggle = True
                 print(f"Propeller Speed: {prop_speed}")
-            elif (not left_bumper and not right_bumper and not d_up and not d_down):
-                button_toggle = False
-
-            # Ensure prop_speed is within bounds
-            if prop_speed < PROP_MIN_SPEED:
+            elif (circle_button and not button_toggle):
+                button_toggle = True
                 prop_speed = PROP_MIN_SPEED
-            elif prop_speed > PROP_MAX_SPEED:
-                prop_speed = PROP_MAX_SPEED
-
-            # Set propeller speed
-            pi.set_servo_pulsewidth(ESC_PIN, prop_speed)
+                pi.set_servo_pulsewidth(ESC_PIN, PROP_MIN_SPEED)
+                print(f"Propeller Speed: {prop_speed}")
+            elif (not left_bumper and not right_bumper and not d_up and not d_down and not circle_button):
+                button_toggle = False
 
             # Left stick controls forward/backward movement of left wheel
             if abs(left_y) > 0.1:  # Threshold to avoid noise
                 speed = (abs(left_y) * 30) + 70  # Scale to 70 - 100
-                pwm_left.start(speed)  # Scale to 0 - 100
+                pwm_left.ChangeDutyCycle(speed)  # Scale to 0 - 100
                 if left_y > 0:
                     GPIO.output(MOTOR_LEFT_FORWARD_PIN, GPIO.LOW)
                     GPIO.output(MOTOR_LEFT_BACKWARD_PIN, GPIO.HIGH)
@@ -207,14 +222,14 @@ elif inp == 'c' or inp == 'controller':
                     GPIO.output(MOTOR_LEFT_FORWARD_PIN, GPIO.HIGH)
                     GPIO.output(MOTOR_LEFT_BACKWARD_PIN, GPIO.LOW)
             else:
-                pwm_left.stop()
+                pwm_left.ChangeDutyCycle(0)
                 GPIO.output(MOTOR_LEFT_FORWARD_PIN, GPIO.LOW)
                 GPIO.output(MOTOR_LEFT_BACKWARD_PIN, GPIO.LOW)
 
             # Right stick controls forward/backward movement of right wheel
             if abs(right_y) > 0.1:
                 speed = (abs(right_y) * 30) + 70
-                pwm_right.start(speed)
+                pwm_right.ChangeDutyCycle(speed)
                 if right_y > 0:
                     GPIO.output(MOTOR_RIGHT_FORWARD_PIN, GPIO.HIGH)
                     GPIO.output(MOTOR_RIGHT_BACKWARD_PIN, GPIO.LOW)
@@ -222,7 +237,7 @@ elif inp == 'c' or inp == 'controller':
                     GPIO.output(MOTOR_RIGHT_FORWARD_PIN, GPIO.LOW)
                     GPIO.output(MOTOR_RIGHT_BACKWARD_PIN, GPIO.HIGH)
             else:
-                pwm_right.stop()
+                pwm_right.ChangeDutyCycle(0)
                 GPIO.output(MOTOR_RIGHT_FORWARD_PIN, GPIO.LOW)
                 GPIO.output(MOTOR_RIGHT_BACKWARD_PIN, GPIO.LOW)
 

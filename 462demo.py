@@ -7,6 +7,26 @@ import os  # importing os library so as to communicate with the system
 import time  # importing time library to make Rpi wait
 import pygame
 
+os.system("sudo systemctl enable bluetooth")
+os.system("sudo systemctl start bluetooth")
+
+pygame.init()
+pygame.joystick.init()
+
+joystick = pygame.joystick.Joystick(0)
+joystick.init()
+
+print(f"Joystick initialized: {joystick.get_name()}")
+
+while True:
+    pygame.event.pump()
+    if joystick.get_button(5):  # PS Logo
+        print("Start button pressed")
+        break
+
+    time.sleep(1)
+
+
 os.system("sudo pigpiod")  # Launching GPIO library
 
 time.sleep(1)
@@ -45,17 +65,6 @@ if len(sys.argv) > 1:
         print("Will arm ESC shortly.")
 else:
     print("Assuming ESC is armed. Please rerun with 'arm' argument to arm ESC.")
-
-os.system("sudo systemctl enable bluetooth")
-os.system("sudo systemctl start bluetooth")
-
-pygame.init()
-pygame.joystick.init()
-
-joystick = pygame.joystick.Joystick(0)
-joystick.init()
-
-print(f"Joystick initialized: {joystick.get_name()}")
 
 buttons_pressed = set([])
 
